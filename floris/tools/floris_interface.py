@@ -647,6 +647,8 @@ class FlorisInterface(LoggerBase):
                     zmin,
                     zmax,
                 ) = self.floris.farm.flow_field.domain_bounds
+                
+#                self.logger.info("Zmax =  %d" % zmax)
                 resolution = Vec3(
                     1 + (xmax - xmin) / grid_spacing,
                     1 + (ymax - ymin) / grid_spacing,
@@ -671,8 +673,27 @@ class FlorisInterface(LoggerBase):
                 + "FlorisInterface.get_flow_field is ignored."
             )
             resolution = flow_field.wake.velocity_model.model_grid_resolution
-        flow_field.reinitialize_flow_field(with_resolution=resolution)
+
+#        flow_field.reinitialize_flow_field(with_resolution=resolution)
+        (
+            xmin,
+            xmax,
+            ymin,
+            ymax,
+            zmin,
+            zmax,
+        ) = self.floris.farm.flow_field.domain_bounds
+        
+        resolution = Vec3(
+                    250,
+                    100,
+                    75,
+                )
+        
+        flow_field.reinitialize_flow_field(with_resolution=resolution,
+                                           bounds_to_set=[xmin,xmax,ymin,ymax,zmin,zmax])
         self.logger.info(resolution)
+#        self.logger.info("domain bounds %d" % flow_field.domain_bounds[-1])
         # print(resolution)
         flow_field.calculate_wake()
 

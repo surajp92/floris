@@ -749,7 +749,7 @@ class FlorisInterface(LoggerBase):
 
         if resolution is None:
             if not self.floris.farm.flow_field.wake.velocity_model.requires_resolution:
-                self.logger.info("Assuming grid with spacing %d" % grid_spacing)
+                self.logger.info("Assuming model resolution")
                 (
                     xmin,
                     xmax,
@@ -761,9 +761,9 @@ class FlorisInterface(LoggerBase):
                 
 #                self.logger.info("Zmax =  %d" % zmax)
                 resolution = Vec3(
-                    1 + (xmax - xmin) / grid_spacing,
-                    1 + (ymax - ymin) / grid_spacing,
-                    1 + (zmax - zmin) / grid_spacing,
+                    model_grid_resolution[0],
+                    model_grid_resolution[1],
+                    model_grid_resolution[2],
                 )
             else:
                 self.logger.info("Assuming model resolution")
@@ -794,17 +794,11 @@ class FlorisInterface(LoggerBase):
             zmin,
             zmax,
         ) = self.floris.farm.flow_field.domain_bounds
-        
-        resolution = Vec3(
-                    model_grid_resolution[0],
-                    model_grid_resolution[1],
-                    model_grid_resolution[2],
-                )
-        
+                
         flow_field.reinitialize_flow_field(with_resolution=resolution,
                                            bounds_to_set=[xmin,xmax,ymin,ymax,zmin,zmax])
         self.logger.info(resolution)
-        self.logger.info("domain bounds %d" % flow_field.domain_bounds[5])
+        #self.logger.info("domain bounds %d" % flow_field.domain_bounds[5])
         # print(resolution)
         flow_field.calculate_wake()
 
@@ -896,10 +890,10 @@ class FlorisInterface(LoggerBase):
                     1 + (zmax - zmin) / grid_spacing,
                 )
             else:
-                self.logger.info("Assuming model resolution")
-                resolution = (
-                    self.floris.farm.flow_field.wake.velocity_model.model_grid_resolution
-                )
+#                self.logger.info("Assuming model resolution")
+#                resolution = (
+#                    self.floris.farm.flow_field.wake.velocity_model.model_grid_resolution
+#                )
                 
                 self.logger.info("Assuming grid with spacing %d" % grid_spacing)
                 (

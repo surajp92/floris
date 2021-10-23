@@ -616,11 +616,9 @@ class FlorisInterface(LoggerBase):
         """
         Generate :py:class:`~.tools.flow_data.FlowData` object corresponding to
         active FLORIS instance.
-
         Velocity and wake models requiring calculation on a grid implement a
         discretized domain at resolution **grid_spacing**. This is distinct
         from the resolution of the returned flow field domain.
-
         Args:
             resolution (float, optional): Resolution of output data.
                 Only used for wake models that require spatial
@@ -631,7 +629,6 @@ class FlorisInterface(LoggerBase):
             velocity_deficit (bool, optional): When *True*, normalizes velocity
                 with respect to initial flow field velocity to show relative
                 velocity deficit (%). Defaults to *False*.
-
         Returns:
             :py:class:`~.tools.flow_data.FlowData`: FlowData object
         """
@@ -672,6 +669,275 @@ class FlorisInterface(LoggerBase):
             )
             resolution = flow_field.wake.velocity_model.model_grid_resolution
         flow_field.reinitialize_flow_field(with_resolution=resolution)
+        self.logger.info(resolution)
+        # print(resolution)
+        flow_field.calculate_wake()
+
+        order = "f"
+        x = flow_field.x.flatten(order=order)
+        y = flow_field.y.flatten(order=order)
+        z = flow_field.z.flatten(order=order)
+
+        u = flow_field.u.flatten(order=order)
+        v = flow_field.v.flatten(order=order)
+        w = flow_field.w.flatten(order=order)
+
+        # find percent velocity deficit
+        if velocity_deficit:
+            u = (
+                abs(u - flow_field.u_initial.flatten(order=order))
+                / flow_field.u_initial.flatten(order=order)
+                * 100
+            )
+            v = (
+                abs(v - flow_field.v_initial.flatten(order=order))
+                / flow_field.v_initial.flatten(order=order)
+                * 100
+            )
+            w = (
+                abs(w - flow_field.w_initial.flatten(order=order))
+                / flow_field.w_initial.flatten(order=order)
+                * 100
+            )
+
+        # Determine spacing, dimensions and origin
+        unique_x = np.sort(np.unique(x))
+        unique_y = np.sort(np.unique(y))
+        unique_z = np.sort(np.unique(z))
+        spacing = Vec3(
+            unique_x[1] - unique_x[0],
+            unique_y[1] - unique_y[0],
+            unique_z[1] - unique_z[0],
+        )
+        dimensions = Vec3(len(unique_x), len(unique_y), len(unique_z))
+        origin = Vec3(0.0, 0.0, 0.0)
+        return FlowData(
+            x, y, z, u, v, w, spacing=spacing, dimensions=dimensions, origin=origin
+        )
+
+
+    def get_flow_data_res(self, resolution=None, grid_spacing=10, velocity_deficit=False,
+                          model_grid_resolution=[250, 100, 75]):
+        """
+        Generate :py:class:`~.tools.flow_data.FlowData` object corresponding to
+        active FLORIS instance.
+
+        Velocity and wake models requiring calculation on a grid implement a
+        discretized domain at resolution **grid_spacing**. This is distinct
+        from the resolution of the returned flow field domain.
+        
+        This function is added to extrat the flow data for any of the wake 
+        velocity model with a defined domain bounds and curl model resolution. 
+        The default get_flow_data() method was having problem in assigning the 
+        specified domain (identical to Curl model). Also, the grid spacing was
+        used to compute the resolution (except for Curl model).
+        
+        Args:
+            resolution (float, optional): Resolution of output data.
+                Only used for wake models that require spatial
+                resolution (e.g. curl). Defaults to None.
+            grid_spacing (int, optional): Resolution of grid used for
+                simulation. Model results may be sensitive to resolution.
+                Defaults to 10.
+            velocity_deficit (bool, optional): When *True*, normalizes velocity
+                with respect to initial flow field velocity to show relative
+                velocity deficit (%). Defaults to *False*.
+
+        Returns:
+            :py:class:`~.tools.flow_data.FlowData`: FlowData object
+        """
+
+        if resolution is None:
+            if not self.floris.farm.flow_field.wake.velocity_model.requires_resolution:
+                self.logger.info("Assuming model resolution")
+                (
+                    xmin,
+                    xmax,
+                    ymin,
+                    ymax,
+                    zmin,
+                    zmax,
+                ) = self.floris.farm.flow_field.domain_bounds
+                
+#                self.logger.info("Zmax =  %d" % zmax)
+                resolution = Vec3(
+                    model_grid_resolution[0],
+                    model_grid_resolution[1],
+                    model_grid_resolution[2],
+                )
+            else:
+                self.logger.info("Assuming model resolution")
+                resolution = (
+                    self.floris.farm.flow_field.wake.velocity_model.model_grid_resolution
+                )
+
+        # Get a copy for the flow field so don't change underlying grid points
+        flow_field = copy.deepcopy(self.floris.farm.flow_field)
+
+        if (
+            flow_field.wake.velocity_model.requires_resolution
+            and flow_field.wake.velocity_model.model_grid_resolution != resolution
+        ):
+            self.logger.warning(
+                "WARNING: The current wake velocity model contains a "
+                + "required grid resolution; the Resolution given to "
+                + "FlorisInterface.get_flow_field is ignored."
+            )
+            resolution = flow_field.wake.velocity_model.model_grid_resolution
+
+#        flow_field.reinitialize_flow_field(with_resolution=resolution)
+        (
+            xmin,
+            xmax,
+            ymin,
+            ymax,
+            zmin,
+            zmax,
+        ) = self.floris.farm.flow_field.domain_bounds
+                
+        flow_field.reinitialize_flow_field(with_resolution=resolution,
+                                           bounds_to_set=[xmin,xmax,ymin,ymax,zmin,zmax])
+        self.logger.info(resolution)
+        #self.logger.info("domain bounds %d" % flow_field.domain_bounds[5])
+        # print(resolution)
+        flow_field.calculate_wake()
+
+        order = "f"
+        x = flow_field.x.flatten(order=order)
+        y = flow_field.y.flatten(order=order)
+        z = flow_field.z.flatten(order=order)
+
+        u = flow_field.u.flatten(order=order)
+        v = flow_field.v.flatten(order=order)
+        w = flow_field.w.flatten(order=order)
+
+        # find percent velocity deficit
+        if velocity_deficit:
+            u = (
+                abs(u - flow_field.u_initial.flatten(order=order))
+                / flow_field.u_initial.flatten(order=order)
+                * 100
+            )
+            v = (
+                abs(v - flow_field.v_initial.flatten(order=order))
+                / flow_field.v_initial.flatten(order=order)
+                * 100
+            )
+            w = (
+                abs(w - flow_field.w_initial.flatten(order=order))
+                / flow_field.w_initial.flatten(order=order)
+                * 100
+            )
+
+        # Determine spacing, dimensions and origin
+        unique_x = np.sort(np.unique(x))
+        unique_y = np.sort(np.unique(y))
+        unique_z = np.sort(np.unique(z))
+        spacing = Vec3(
+            unique_x[1] - unique_x[0],
+            unique_y[1] - unique_y[0],
+            unique_z[1] - unique_z[0],
+        )
+        dimensions = Vec3(len(unique_x), len(unique_y), len(unique_z))
+        origin = Vec3(0.0, 0.0, 0.0)
+        return FlowData(
+            x, y, z, u, v, w, spacing=spacing, dimensions=dimensions, origin=origin
+        )
+        
+    def get_flow_data_gs(self, resolution=None, grid_spacing=10, velocity_deficit=False, 
+                          ):
+        """
+        Generate :py:class:`~.tools.flow_data.FlowData` object corresponding to
+        active FLORIS instance.
+        Velocity and wake models requiring calculation on a grid implement a
+        discretized domain at resolution **grid_spacing**. This is distinct
+        from the resolution of the returned flow field domain.
+        
+        This function is added to extrat the flow data for any of the wake 
+        velocity model with a defined domain bounds and grid spacing. 
+        The default get_flow_data() method was having problem in assigning the 
+        specified domain (identical  to Curl model). Also, in case of the 
+        Curl model grid spacing was ignored.
+        
+        Args:
+            resolution (float, optional): Resolution of output data.
+                Only used for wake models that require spatial
+                resolution (e.g. curl). Defaults to None.
+            grid_spacing (int, optional): Resolution of grid used for
+                simulation. Model results may be sensitive to resolution.
+                Defaults to 10.
+            velocity_deficit (bool, optional): When *True*, normalizes velocity
+                with respect to initial flow field velocity to show relative
+                velocity deficit (%). Defaults to *False*.
+        Returns:
+            :py:class:`~.tools.flow_data.FlowData`: FlowData object
+        """
+
+        if resolution is None:
+            if not self.floris.farm.flow_field.wake.velocity_model.requires_resolution:
+                self.logger.info("Assuming grid with spacing %d" % grid_spacing)
+                (
+                    xmin,
+                    xmax,
+                    ymin,
+                    ymax,
+                    zmin,
+                    zmax,
+                ) = self.floris.farm.flow_field.domain_bounds
+                resolution = Vec3(
+                    1 + (xmax - xmin) / grid_spacing,
+                    1 + (ymax - ymin) / grid_spacing,
+                    1 + (zmax - zmin) / grid_spacing,
+                )
+            else:
+#                self.logger.info("Assuming model resolution")
+#                resolution = (
+#                    self.floris.farm.flow_field.wake.velocity_model.model_grid_resolution
+#                )
+                
+                self.logger.info("Assuming grid with spacing %d" % grid_spacing)
+                (
+                    xmin,
+                    xmax,
+                    ymin,
+                    ymax,
+                    zmin,
+                    zmax,
+                ) = self.floris.farm.flow_field.domain_bounds
+                        
+                resolution = Vec3(
+                    1 + (xmax - xmin) / grid_spacing,
+                    1 + (ymax - ymin) / grid_spacing,
+                    1 + (zmax - zmin) / grid_spacing,
+                )
+
+        # Get a copy for the flow field so don't change underlying grid points
+        flow_field = copy.deepcopy(self.floris.farm.flow_field)
+
+        if (
+            flow_field.wake.velocity_model.requires_resolution
+            and flow_field.wake.velocity_model.model_grid_resolution != resolution
+        ):
+            self.logger.warning(
+                "WARNING: The current wake velocity model contains a "
+                + "required grid resolution; the required grid resolution "
+                + "is ignored."
+            )
+#            resolution = flow_field.wake.velocity_model.model_grid_resolution
+        
+        (
+            xmin,
+            xmax,
+            ymin,
+            ymax,
+            zmin,
+            zmax,
+        ) = self.floris.farm.flow_field.domain_bounds
+                
+        flow_field.reinitialize_flow_field(with_resolution=resolution,
+                                           bounds_to_set=[xmin,xmax,ymin,ymax,zmin,zmax]
+                                           )
+        
         self.logger.info(resolution)
         # print(resolution)
         flow_field.calculate_wake()

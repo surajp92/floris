@@ -326,11 +326,7 @@ class FlowField:
             x_coord = [coord.x1 for coord in rotated_map.coords]
             y_coord = [coord.x2 for coord in rotated_map.coords]
             # re-setup the grid for the curl model
-<<<<<<< HEAD
             eps = 0.1
-=======
-	    eps = 0.1 
->>>>>>> adb0ab74034d5b65eec9a5ee06e3c78422477c09
             xmin = np.min(x_coord) - 2 * self.max_diameter
             xmax = np.max(x_coord) + 10 * self.max_diameter
             ymin = np.min(y_coord) - 2 * self.max_diameter

@@ -326,12 +326,13 @@ class FlowField:
             x_coord = [coord.x1 for coord in rotated_map.coords]
             y_coord = [coord.x2 for coord in rotated_map.coords]
             # re-setup the grid for the curl model
+            eps = 0.1
             xmin = np.min(x_coord) - 2 * self.max_diameter
             xmax = np.max(x_coord) + 10 * self.max_diameter
             ymin = np.min(y_coord) - 2 * self.max_diameter
             ymax = np.max(y_coord) + 2 * self.max_diameter
-            zmin = 0.1
-            zmax = 6 * self.specified_wind_height
+            zmin = eps
+            zmax = 6 * self.specified_wind_height + eps
 
             # Save these bounds
             self._xmin = xmin
@@ -391,7 +392,7 @@ class FlowField:
             self._ymin = min(y) - 2 * self.max_diameter
             self._ymax = max(y) + 2 * self.max_diameter
             self._zmin = 0 + eps
-            self._zmax = 6 * self.specified_wind_height
+            self._zmax = 6 * self.specified_wind_height + eps
 
         elif bounds_to_set is not None:
             # Set the boundaries
@@ -441,7 +442,7 @@ class FlowField:
                 self._ymax = max(y) + 2 * self.max_diameter
 
             self._zmin = 0 + eps
-            self._zmax = 2 * self.specified_wind_height
+            self._zmax = 2 * self.specified_wind_height + eps
 
     def reinitialize_flow_field(
         self,
